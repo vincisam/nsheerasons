@@ -1,7 +1,7 @@
 {
   "name": "nsheera-backend",
-  "version": "1.0.1",
-  "description": "Nsheera Jewellery backend — auth, client profiles, AI jewellery design & AI astro stone suggestions powered by Google Gemini",
+  "version": "1.0.2",
+  "description": "Nsheera Jewellery backend — auth, client profiles, AI jewellery design & AI astro stone suggestions powered by Google Gemini & Anthropic",
   "main": "src/server.js",
   "type": "commonjs",
   "scripts": {
@@ -23,8 +23,10 @@
     "multer": "^1.4.5-lts.1",
     "node-fetch": "^2.7.0",
     "express-rate-limit": "^7.4.0",
+    "anthropic": "^0.20.0",
     "razorpay": "^2.9.4",
-    "pdfkit": "^0.15.0"
+    "pdfkit": "^0.15.0",
+    "@google/generative-ai": "^0.17.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.4"
