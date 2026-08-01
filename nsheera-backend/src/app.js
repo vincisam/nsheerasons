@@ -20,26 +20,26 @@ const { uploadRoot } = require('./middleware/upload');
 
 const app = express();
 
-// CORS — allow all origins
-const corsOptions = {
-  origin: '*',
-  credentials: false,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH', 'HEAD'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
-  exposedHeaders: ['Content-Length', 'X-JSON-Response'],
-};
+// Trust proxy headers from Railway
+app.set('trust proxy', 1);
+
+// Hardcoded CORS headers middleware - runs before everything
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
+  res.setHeader('Access-Control-Max-Age', '86400');
+  res.setHeader('Access-Control-Expose-Headers', 'Content-Length, X-JSON-Response');
+  
+  // Handle preflight
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+});
 
 app.use(helmet({ crossOriginResourcePolicy: false }));
-app.use(cors(corsOptions));
-
-// Explicitly handle preflight for all routes
-app.options('*', (req, res) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
-  res.header('Access-Control-Max-Age', '86400');
-  res.sendStatus(200);
-});
+app.use(cors({ origin: '*' }));
 
 // IMPORTANT: Razorpay webhook needs the RAW request body to verify the
 // signature, so it must be registered BEFORE express.json() with its own
