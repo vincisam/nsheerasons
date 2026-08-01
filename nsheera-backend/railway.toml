@@ -4,12 +4,6 @@ builder = "nixpacks"
 [build.nixpacks]
 # Install system packages
 apt = ["libatomic1"]
-# Install mise and configure it
-setup = [
-  "curl https://mise.jdx.dev/install.sh | sh",
-  "export PATH=\"$HOME/.local/bin:$PATH\"",
-  "mise install node"
-]
 
 [start]
-cmd = "node src/server.js"
+cmd = "npm start"
