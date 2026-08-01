@@ -16,12 +16,15 @@ export default defineConfig({
     'import.meta.env.VITE_ASTRO_BACKEND_URL': JSON.stringify(
       process.env.VITE_ASTRO_BACKEND_URL || 'https://nsheerasons.up.railway.app/api/ai/stone-suggestion'
     ),
+    'import.meta.env.VITE_FRONTEND_URL': JSON.stringify(
+      process.env.VITE_FRONTEND_URL || 'https://nsheerasons-crnr.vercel.app'
+    ),
   },
   server: {
     proxy: {
-      // Proxy /api/* to the Spring Boot backend during local development
+      // Proxy /api/* to the backend during local development
       '/api': {
-        target: 'http://localhost:8080',
+        target: 'http://localhost:5000',
         changeOrigin: true,
       },
     },
