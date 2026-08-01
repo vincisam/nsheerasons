@@ -8,13 +8,13 @@ export default defineConfig({
   define: {
     // Explicitly inject env vars at build time
     'import.meta.env.VITE_DESIGN_BACKEND_URL': JSON.stringify(
-      process.env.VITE_DESIGN_BACKEND_URL || 'https://nsheera-rates-proxy-production.up.railway.app/api/design/generate'
+      process.env.VITE_DESIGN_BACKEND_URL || 'https://nsheera-backend-production.up.railway.app/api/ai/jewellery-design'
     ),
     'import.meta.env.VITE_RATES_BACKEND_URL': JSON.stringify(
       process.env.VITE_RATES_BACKEND_URL || 'https://nsheera-rates-proxy-production.up.railway.app/api/rates'
     ),
     'import.meta.env.VITE_ASTRO_BACKEND_URL': JSON.stringify(
-      process.env.VITE_ASTRO_BACKEND_URL || 'https://nsheera-rates-proxy-production.up.railway.app/api/astro/suggest-stone'
+      process.env.VITE_ASTRO_BACKEND_URL || 'https://nsheera-backend-production.up.railway.app/api/ai/stone-suggestion'
     ),
   },
   server: {
