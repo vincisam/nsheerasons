@@ -67,8 +67,10 @@ app.get('/health', (req, res) => {
 });
 
 app.get('/api/health', (req, res) => {
-  res.json({ success: true, message: 'Nsheera API is running', timestamp: new Date().toISOString() });
+  res.json({ success: true, message: 'Nsheera API is running', timestamp: new Date().toISOString(), version: '1.0.2' });
 });
+
+app.options('*', cors()); // enable pre-flight
 
 app.use('/api/auth', authRoutes);
 app.use('/api/client', clientRoutes);
