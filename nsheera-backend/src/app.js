@@ -20,30 +20,33 @@ const { uploadRoot } = require('./middleware/upload');
 
 const app = express();
 
-app.use(helmet({ crossOriginResourcePolicy: false })); // allow serving /uploads images cross-origin
-app.use(
-  cors({
-    origin: function (origin, callback) {
-      const allowedOrigins = [
-        'https://nsheerasons-crnr.vercel.app',
-        'https://nsheerasons.vercel.app',
-        process.env.CORS_ORIGIN,
-        'https://vincisam.github.io',
-        'http://localhost:3000',
-        'http://localhost:5173',
-      ].filter(Boolean);
-      
-      // Allow requests without origin (like mobile apps or non-browser clients)
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        console.log('CORS rejected origin:', origin);
-        callback(null, true); // Allow for now
-      }
-    },
-    credentials: true,
-  })
-);
+// CORS configuration
+const corsOptions = {
+  origin: function (origin, callback) {
+    const allowedOrigins = [
+      'https://nsheerasons-crnr.vercel.app',
+      'https://nsheerasons.vercel.app',
+      process.env.CORS_ORIGIN,
+      'https://vincisam.github.io',
+      'http://localhost:3000',
+      'http://localhost:5173',
+    ].filter(Boolean);
+    
+    // Allow all origins for development; restrict in production
+    if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production') {
+      callback(null, true);
+    } else {
+      callback(null, true); // Allow for now
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+};
+
+app.use(helmet({ crossOriginResourcePolicy: false }));
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); // Enable preflight for all routes
 
 // IMPORTANT: Razorpay webhook needs the RAW request body to verify the
 // signature, so it must be registered BEFORE express.json() with its own
@@ -73,8 +76,6 @@ app.get('/health', (req, res) => {
 app.get('/api/health', (req, res) => {
   res.json({ success: true, message: 'Nsheera API is running', timestamp: new Date().toISOString(), version: '1.0.2' });
 });
-
-app.options('*', cors()); // enable pre-flight
 
 app.use('/api/auth', authRoutes);
 app.use('/api/client', clientRoutes);
