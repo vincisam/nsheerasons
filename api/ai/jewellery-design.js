@@ -3,8 +3,7 @@ export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    res.status(200).end();
-    return;
+    return res.status(200).end();
   }
 
   try {
@@ -12,9 +11,7 @@ export default async function handler(req, res) {
     
     const fetchOptions = {
       method: req.method,
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
     };
 
     if (req.headers.authorization) {
@@ -22,9 +19,10 @@ export default async function handler(req, res) {
     }
 
     if (req.method !== 'GET' && req.body) {
-      fetchOptions.body = JSON.stringify(req.body);
+      fetchOptions.body = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
     }
 
+    console.log(`[Proxy] ${req.method} ${backendUrl}`);
     const response = await fetch(backendUrl, fetchOptions);
     const data = await response.json();
 
@@ -34,8 +32,7 @@ export default async function handler(req, res) {
     
     res.status(response.status).json(data);
   } catch (error) {
-    console.error('Proxy error:', error);
-    res.setHeader('Access-Control-Allow-Origin', '*');
+    console.error('[Proxy Error]', error);
     res.status(500).json({ error: error.message });
   }
 }
