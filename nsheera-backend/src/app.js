@@ -49,7 +49,13 @@ const aiLimiter = rateLimit({
   message: { success: false, message: 'Too many AI requests, please try again later.' },
 });
 
-app.get('/health', (req, res) => res.json({ success: true, message: 'Nsheera API is running' }));
+app.get('/health', (req, res) => {
+  res.json({ success: true, message: 'Nsheera API is running', timestamp: new Date().toISOString() });
+});
+
+app.get('/api/health', (req, res) => {
+  res.json({ success: true, message: 'Nsheera API is running', timestamp: new Date().toISOString() });
+});
 
 app.use('/api/auth', authRoutes);
 app.use('/api/client', clientRoutes);
