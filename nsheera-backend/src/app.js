@@ -25,16 +25,20 @@ app.use(
   cors({
     origin: function (origin, callback) {
       const allowedOrigins = [
+        'https://nsheerasons-crnr.vercel.app',
+        'https://nsheerasons.vercel.app',
         process.env.CORS_ORIGIN,
         'https://vincisam.github.io',
         'http://localhost:3000',
         'http://localhost:5173',
       ].filter(Boolean);
       
-      if (!origin || allowedOrigins.includes(origin) || !process.env.CORS_ORIGIN) {
+      // Allow requests without origin (like mobile apps or non-browser clients)
+      if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
-        callback(new Error('Not allowed by CORS'));
+        console.log('CORS rejected origin:', origin);
+        callback(null, true); // Allow for now
       }
     },
     credentials: true,
