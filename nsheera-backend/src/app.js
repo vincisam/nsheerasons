@@ -20,33 +20,26 @@ const { uploadRoot } = require('./middleware/upload');
 
 const app = express();
 
-// CORS configuration
+// CORS — allow all origins
 const corsOptions = {
-  origin: function (origin, callback) {
-    const allowedOrigins = [
-      'https://nsheerasons-crnr.vercel.app',
-      'https://nsheerasons.vercel.app',
-      process.env.CORS_ORIGIN,
-      'https://vincisam.github.io',
-      'http://localhost:3000',
-      'http://localhost:5173',
-    ].filter(Boolean);
-    
-    // Allow all origins for development; restrict in production
-    if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production') {
-      callback(null, true);
-    } else {
-      callback(null, true); // Allow for now
-    }
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  origin: '*',
+  credentials: false,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH', 'HEAD'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+  exposedHeaders: ['Content-Length', 'X-JSON-Response'],
 };
 
 app.use(helmet({ crossOriginResourcePolicy: false }));
 app.use(cors(corsOptions));
-app.options('*', cors(corsOptions)); // Enable preflight for all routes
+
+// Explicitly handle preflight for all routes
+app.options('*', (req, res) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
+  res.header('Access-Control-Max-Age', '86400');
+  res.sendStatus(200);
+});
 
 // IMPORTANT: Razorpay webhook needs the RAW request body to verify the
 // signature, so it must be registered BEFORE express.json() with its own
