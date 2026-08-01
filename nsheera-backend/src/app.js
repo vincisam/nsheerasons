@@ -23,7 +23,20 @@ const app = express();
 app.use(helmet({ crossOriginResourcePolicy: false })); // allow serving /uploads images cross-origin
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN || process.env.CLIENT_URL || '*',
+    origin: function (origin, callback) {
+      const allowedOrigins = [
+        process.env.CORS_ORIGIN,
+        'https://vincisam.github.io',
+        'http://localhost:3000',
+        'http://localhost:5173',
+      ].filter(Boolean);
+      
+      if (!origin || allowedOrigins.includes(origin) || !process.env.CORS_ORIGIN) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     credentials: true,
   })
 );

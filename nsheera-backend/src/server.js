@@ -12,8 +12,9 @@ const start = async () => {
     
     await connectDB();
     
-    app.listen(PORT, () => {
+    app.listen(PORT, '0.0.0.0', () => {
       console.log(`✓ Nsheera backend running on port ${PORT} [${process.env.NODE_ENV || 'development'}]`);
+      console.log(`✓ CORS_ORIGIN: ${process.env.CORS_ORIGIN || '*'}`);
     });
   } catch (err) {
     console.error('Failed to start:', err.message);
