@@ -1,9 +1,0 @@
-[build]
-builder = "nixpacks"
-
-[build.nixpacks]
-# Install system packages
-apt = ["libatomic1"]
-
-[start]
-cmd = "npm start"
