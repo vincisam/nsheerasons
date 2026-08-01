@@ -1,6 +1,6 @@
 {
   "name": "nsheera-backend",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Nsheera Jewellery backend — auth, client profiles, AI jewellery design & AI astro stone suggestions powered by Google Gemini",
   "main": "src/server.js",
   "type": "commonjs",
@@ -29,6 +29,13 @@
   "devDependencies": {
     "nodemon": "^3.1.4"
   },
+  "keywords": [
+    "jewellery",
+    "ecommerce",
+    "gemini",
+    "astrology",
+    "razorpay"
+  ]
   "engines": {
     "node": ">=18.0.0"
   }
