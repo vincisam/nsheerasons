@@ -1,0 +1,25 @@
+{
+  "name": "nsheera-jewellers",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "test": "node --test src/**/*.test.js",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "build": "^0.1.4",
+    "lucide-react": "^0.383.0",
+    "mongo": "^0.1.0",
+    "node": "^26.5.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.2",
+    "@vitejs/plugin-react": "^6.0.4",
+    "vite": "^8.1.5"
+  }
+}
