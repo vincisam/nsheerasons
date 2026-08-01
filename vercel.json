@@ -3,7 +3,6 @@
   "buildCommand": "vite build",
   "outputDirectory": "dist",
   "rewrites": [
-    { "source": "/api/ai/(.*)", "destination": "https://nsheerasons.up.railway.app/api/ai/$1" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }

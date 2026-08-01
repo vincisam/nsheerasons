@@ -8,7 +8,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const backendUrl = 'https://nsheerasons.up.railway.app/api/ai/jewellery-design';
+    const backendUrl = 'https://nsheerasons.up.railway.app/api/ai/stone-suggestion';
     
     const fetchOptions = {
       method: req.method,
