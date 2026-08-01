@@ -23,7 +23,7 @@ const app = express();
 app.use(helmet({ crossOriginResourcePolicy: false })); // allow serving /uploads images cross-origin
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || '*',
+    origin: process.env.CORS_ORIGIN || process.env.CLIENT_URL || '*',
     credentials: true,
   })
 );
