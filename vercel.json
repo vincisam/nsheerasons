@@ -3,7 +3,14 @@
   "buildCommand": "vite build",
   "outputDirectory": "dist",
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/index" },
+    { "source": "/api/ai/(.*)", "destination": "/api/index" },
+    { "source": "/api/auth/(.*)", "destination": "/api/index" },
+    { "source": "/api/client/(.*)", "destination": "/api/index" },
+    { "source": "/api/jewellery/(.*)", "destination": "/api/index" },
+    { "source": "/api/orders/(.*)", "destination": "/api/index" },
+    { "source": "/api/payments/(.*)", "destination": "/api/index" },
+    { "source": "/api/invoices/(.*)", "destination": "/api/index" },
+    { "source": "/api/admin/(.*)", "destination": "/api/index" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }
