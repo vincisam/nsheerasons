@@ -4,7 +4,11 @@ const PDFDocument = require('pdfkit');
 const Invoice = require('../models/Invoice');
 const { nextSequence } = require('../models/Counter');
 
-const INVOICE_DIR = path.join(process.cwd(), process.env.UPLOAD_DIR || 'uploads', 'invoices');
+const INVOICE_DIR = path.join(
+  (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) ? '/tmp' : process.cwd(),
+  process.env.UPLOAD_DIR || 'uploads',
+  'invoices'
+);
 
 function ensureInvoiceDir() {
   if (!fs.existsSync(INVOICE_DIR)) {
