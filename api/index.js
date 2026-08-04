@@ -17,15 +17,8 @@ const ensureDbConnected = () => {
 const handler = serverless(app);
 
 module.exports = async (req, res) => {
-  try {
-    await ensureDbConnected();
-  } catch (err) {
+  ensureDbConnected().catch((err) => {
     console.error('DB connection failed:', err.message);
-    res.statusCode = 503;
-    res.setHeader('Content-Type', 'application/json');
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.end(JSON.stringify({ success: false, message: 'Database unavailable: ' + err.message }));
-    return;
-  }
+  });
   return handler(req, res);
 };

@@ -336,8 +336,8 @@ async function callDesignAI({ promptText, fileBlock }) {
         const concept = await res.json();
         return normalizeDesignConcept(concept);
       }
-      // Backend reachable but not configured (no ANTHROPIC_API_KEY set) or the AI
-      // call itself failed server-side — fall through to the in-artifact path below.
+      const errorBody = await res.text();
+      throw new Error(errorBody || `AI design backend request failed (HTTP ${res.status})`);
     } catch (networkErr) {
       // Backend not deployed/running (e.g. local dev without the Spring Boot service
       // started) — fall through to the in-artifact path below.
