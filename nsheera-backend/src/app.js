@@ -17,6 +17,7 @@ const adminRoutes = require('./routes/adminRoutes');
 const { razorpayWebhook } = require('./controllers/paymentController');
 const { notFound, errorHandler } = require('./middleware/errorHandler');
 const { uploadRoot } = require('./middleware/upload');
+const connectDB = require('./config/db');
 
 const app = express();
 
@@ -70,15 +71,24 @@ app.get('/api/health', (req, res) => {
   res.json({ success: true, message: 'Nsheera API is running', timestamp: new Date().toISOString(), version: '1.0.2' });
 });
 
-app.use('/api/auth', authRoutes);
-app.use('/api/client', clientRoutes);
+const ensureDbConnected = async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    next(err);
+  }
+};
+
+app.use('/api/auth', ensureDbConnected, authRoutes);
+app.use('/api/client', ensureDbConnected, clientRoutes);
 app.use('/api/ai/jewellery-design', aiLimiter, designRoutes);
 app.use('/api/ai/stone-suggestion', aiLimiter, astroRoutes);
-app.use('/api/jewellery', jewelleryRoutes);
-app.use('/api/orders', orderRoutes);
-app.use('/api/payments', paymentRoutes); // /api/payments/webhook is mounted separately above
-app.use('/api/invoices', invoiceRoutes);
-app.use('/api/admin', adminRoutes);
+app.use('/api/jewellery', ensureDbConnected, jewelleryRoutes);
+app.use('/api/orders', ensureDbConnected, orderRoutes);
+app.use('/api/payments', ensureDbConnected, paymentRoutes); // /api/payments/webhook is mounted separately above
+app.use('/api/invoices', ensureDbConnected, invoiceRoutes);
+app.use('/api/admin', ensureDbConnected, adminRoutes);
 
 app.use(notFound);
 app.use(errorHandler);
