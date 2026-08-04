@@ -321,7 +321,7 @@ Respond with ONLY a JSON object in exactly this shape — no markdown fences, no
 // Primary source: your own backend proxy for AI design, exposed at the same origin
 // via /api/ai/jewellery-design during deployment. Local dev: Vite proxies /api/* →
 // http://localhost:3000 (vite.config.js). Left blank, this tier is simply skipped.
-const DESIGN_BACKEND_URL = import.meta.env.VITE_DESIGN_BACKEND_URL || '/api/design/generate';
+const DESIGN_BACKEND_URL = import.meta.env.VITE_DESIGN_BACKEND_URL || '/api/ai/jewellery-design';
 
 async function callDesignAI({ promptText, fileBlock }) {
   // Try the backend proxy first — it works on the deployed, standalone site.
@@ -385,7 +385,7 @@ async function callDesignAI({ promptText, fileBlock }) {
 /* advice — see the disclaimer rendered with every result.              */
 /* ------------------------------------------------------------------ */
 
-const ASTRO_BACKEND_URL = import.meta.env.VITE_ASTRO_BACKEND_URL || '/api/astro/suggest-stone';
+const ASTRO_BACKEND_URL = import.meta.env.VITE_ASTRO_BACKEND_URL || '/api/ai/stone-suggestion';
 
 async function callAstroAI({ dateOfBirth, timeOfBirth, placeOfBirth, concern }) {
   let response;
