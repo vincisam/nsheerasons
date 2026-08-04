@@ -8,6 +8,8 @@
     }
   },
   "rewrites": [
+    { "source": "/api/ai/jewellery-design", "destination": "/api/ai/jewellery-design.js" },
+    { "source": "/api/ai/stone-suggestion", "destination": "/api/ai/stone-suggestion.js" },
     { "source": "/api/ai/(.*)", "destination": "/api/index" },
     { "source": "/api/auth/(.*)", "destination": "/api/index" },
     { "source": "/api/client/(.*)", "destination": "/api/index" },
