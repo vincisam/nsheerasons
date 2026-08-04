@@ -5,10 +5,11 @@ const upload = require('../middleware/upload');
 
 const router = express.Router();
 
-router.use(protect);
-
-// multipart/form-data with optional "referenceImage" file field, plus text fields
+// Allow public AI design generation from the client dashboard.
 router.post('/', upload.single('referenceImage'), createDesign);
+
+// Listing and retrieval remain protected.
+router.use(protect);
 router.get('/', listDesigns);
 router.get('/:id', getDesign);
 

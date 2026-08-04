@@ -318,10 +318,9 @@ Respond with ONLY a JSON object in exactly this shape — no markdown fences, no
   ]
 }`;
 
-// Primary source: your own backend proxy (see /rates-proxy — the same small Spring
-// Boot service that proxies gold/silver rates also exposes POST /api/design/generate,
-// holding a real Anthropic API key server-side). Local dev: Vite proxies /api/* →
-// http://localhost:8080 (vite.config.js). Left blank, this tier is simply skipped.
+// Primary source: your own backend proxy for AI design, exposed at the same origin
+// via /api/ai/jewellery-design during deployment. Local dev: Vite proxies /api/* →
+// http://localhost:3000 (vite.config.js). Left blank, this tier is simply skipped.
 const DESIGN_BACKEND_URL = import.meta.env.VITE_DESIGN_BACKEND_URL || '/api/design/generate';
 
 async function callDesignAI({ promptText, fileBlock }) {
