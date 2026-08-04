@@ -1,6 +1,10 @@
 const { generateDesignConcept } = require('../../nsheera-backend/src/services/jewelleryDesignService');
 
 const parseBody = async (req) => {
+  if (req.body && typeof req.body === 'object') {
+    return req.body;
+  }
+
   const contentType = req.headers['content-type'] || '';
   if (!contentType.includes('application/json')) return {};
 
