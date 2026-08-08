@@ -17,30 +17,16 @@ const adminRoutes = require('./routes/adminRoutes');
 const { razorpayWebhook } = require('./controllers/paymentController');
 const { notFound, errorHandler } = require('./middleware/errorHandler');
 const { uploadRoot } = require('./middleware/upload');
-const connectDB = require('./config/db');
 
 const app = express();
 
-// Trust proxy headers from Railway
-app.set('trust proxy', 1);
-
-// Hardcoded CORS headers middleware - runs before everything
-app.use((req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
-  res.setHeader('Access-Control-Max-Age', '86400');
-  res.setHeader('Access-Control-Expose-Headers', 'Content-Length, X-JSON-Response');
-  
-  // Handle preflight
-  if (req.method === 'OPTIONS') {
-    return res.sendStatus(200);
-  }
-  next();
-});
-
-app.use(helmet({ crossOriginResourcePolicy: false }));
-app.use(cors({ origin: '*' }));
+app.use(helmet({ crossOriginResourcePolicy: false })); // allow serving /uploads images cross-origin
+app.use(
+  cors({
+    origin: process.env.CLIENT_URL || '*',
+    credentials: true,
+  })
+);
 
 // IMPORTANT: Razorpay webhook needs the RAW request body to verify the
 // signature, so it must be registered BEFORE express.json() with its own
@@ -63,32 +49,17 @@ const aiLimiter = rateLimit({
   message: { success: false, message: 'Too many AI requests, please try again later.' },
 });
 
-app.get('/health', (req, res) => {
-  res.json({ success: true, message: 'Nsheera API is running', timestamp: new Date().toISOString() });
-});
+app.get('/health', (req, res) => res.json({ success: true, message: 'Nsheera API is running' }));
 
-app.get('/api/health', (req, res) => {
-  res.json({ success: true, message: 'Nsheera API is running', timestamp: new Date().toISOString(), version: '1.0.2' });
-});
-
-const ensureDbConnected = async (req, res, next) => {
-  try {
-    await connectDB();
-    next();
-  } catch (err) {
-    next(err);
-  }
-};
-
-app.use('/api/auth', ensureDbConnected, authRoutes);
-app.use('/api/client', ensureDbConnected, clientRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/client', clientRoutes);
 app.use('/api/ai/jewellery-design', aiLimiter, designRoutes);
 app.use('/api/ai/stone-suggestion', aiLimiter, astroRoutes);
-app.use('/api/jewellery', ensureDbConnected, jewelleryRoutes);
-app.use('/api/orders', ensureDbConnected, orderRoutes);
-app.use('/api/payments', ensureDbConnected, paymentRoutes); // /api/payments/webhook is mounted separately above
-app.use('/api/invoices', ensureDbConnected, invoiceRoutes);
-app.use('/api/admin', ensureDbConnected, adminRoutes);
+app.use('/api/jewellery', jewelleryRoutes);
+app.use('/api/orders', orderRoutes);
+app.use('/api/payments', paymentRoutes); // /api/payments/webhook is mounted separately above
+app.use('/api/invoices', invoiceRoutes);
+app.use('/api/admin', adminRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

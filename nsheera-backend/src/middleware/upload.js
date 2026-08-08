@@ -3,12 +3,7 @@ const path = require('path');
 const multer = require('multer');
 
 const maxSize = (Number(process.env.MAX_UPLOAD_MB) || 8) * 1024 * 1024;
-
-// Serverless environments (Vercel/AWS Lambda) only allow writes to /tmp.
-const isServerless = !!(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
-const uploadRoot = isServerless
-  ? path.join('/tmp', process.env.UPLOAD_DIR || 'uploads')
-  : path.join(process.cwd(), process.env.UPLOAD_DIR || 'uploads');
+const uploadRoot = path.join(process.cwd(), process.env.UPLOAD_DIR || 'uploads');
 
 const imageFileFilter = (req, file, cb) => {
   if (file.mimetype.startsWith('image/')) cb(null, true);
@@ -26,11 +21,7 @@ const memoryUpload = multer({
 // Disk upload — used for jewellery catalog images that need a stable,
 // servable URL (e.g. /uploads/jewellery/<file>.jpg).
 const jewelleryDir = path.join(uploadRoot, 'jewellery');
-try {
-  if (!fs.existsSync(jewelleryDir)) fs.mkdirSync(jewelleryDir, { recursive: true });
-} catch (err) {
-  console.error('Could not create upload directory (non-fatal):', err.message);
-}
+if (!fs.existsSync(jewelleryDir)) fs.mkdirSync(jewelleryDir, { recursive: true });
 
 const diskStorage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, jewelleryDir),

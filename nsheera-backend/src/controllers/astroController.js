@@ -2,6 +2,7 @@ const asyncHandler = require('express-async-handler');
 const StoneSuggestion = require('../models/StoneSuggestion');
 const ClientProfile = require('../models/ClientProfile');
 const { generateStoneSuggestion } = require('../services/astroStoneService');
+const { success } = require('../utils/apiResponse');
 
 // @route POST /api/ai/stone-suggestion
 // Client can pass birth details directly in the request, OR rely on
@@ -9,7 +10,7 @@ const { generateStoneSuggestion } = require('../services/astroStoneService');
 const createStoneSuggestion = asyncHandler(async (req, res) => {
   let { dob, timeOfBirth, placeOfBirth, knownRashi, knownNakshatra, focusArea } = req.body;
 
-  if (!dob && req.user) {
+  if (!dob) {
     const profile = await ClientProfile.findOne({ user: req.user._id });
     dob = profile?.birthDetails?.dob;
     timeOfBirth = timeOfBirth || profile?.birthDetails?.timeOfBirth;
@@ -31,29 +32,25 @@ const createStoneSuggestion = asyncHandler(async (req, res) => {
   try {
     ({ parsed, raw } = await generateStoneSuggestion(input));
   } catch (err) {
-    if (req.user) {
-      await StoneSuggestion.create({
-        user: req.user._id,
-        input,
-        status: 'failed',
-        rawModelResponse: err.message,
-      });
-    }
+    await StoneSuggestion.create({
+      user: req.user._id,
+      input,
+      status: 'failed',
+      rawModelResponse: err.message,
+    });
     res.status(502);
     throw new Error(`AI stone suggestion failed: ${err.message}`);
   }
 
-  if (req.user) {
-    await StoneSuggestion.create({
-      user: req.user._id,
-      input,
-      result: parsed,
-      rawModelResponse: raw,
-      status: 'completed',
-    });
-  }
+  const record = await StoneSuggestion.create({
+    user: req.user._id,
+    input,
+    result: parsed,
+    rawModelResponse: raw,
+    status: 'completed',
+  });
 
-  res.status(201).json(parsed);
+  success(res, { stoneSuggestion: record }, 'Stone suggestion generated', 201);
 });
 
 // @route GET /api/ai/stone-suggestion
