@@ -2,7 +2,9 @@ const mongoose = require('mongoose');
 
 const designRequestSchema = new mongoose.Schema(
   {
-    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    // Optional — the AI design endpoints are public, so a request may come in
+    // without a logged-in user (frontend doesn't send a JWT).
+    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: false, default: null },
     input: {
       jewelleryType: String, // ring, necklace, earrings, bangle, pendant...
       occasion: String, // wedding, engagement, daily-wear, gifting...

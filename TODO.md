@@ -1,20 +1,18 @@
-# Deployment TODO
+# TODO - Fix AI Design & Astro, Reorganize Frontend, Build Backend
 
-## Phase 1: Local Dev Proxy Setup ✅
-- [x] Add Vite proxy config in `vite.config.js` for `/api` → `http://localhost:8080`
-- [x] Set `RATES_BACKEND_URL` in `App.jsx` to `/api/rates` (Vite proxy handles it)
+## Phase 1: Fix AI Design & Astro (root cause: request/auth/response shape mismatch) — COMPLETE
+- [x] Merge App_7.jsx into src/App.jsx (verified byte-identical, 0 differences)
+- [x] Backend: Update `jewelleryDesignService.js` to accept frontend `{promptText, fileBlock}` format and return the frontend's expected JSON shape
+- [x] Backend: Update `astroStoneService.js` to accept frontend `{dateOfBirth, timeOfBirth, placeOfBirth, concern}` format and return frontend's expected shape
+- [x] Backend: Update `designController.js` to accept `{promptText, fileBlock}` and return raw concept
+- [x] Backend: Update `astroController.js` to accept frontend fields and return raw suggestion
+- [x] Backend: Make AI endpoints public (remove `protect` middleware from designRoutes & astroRoutes)
+- [x] Backend: Update `DesignRequest.js` and `StoneSuggestion.js` models to match new shapes (user optional)
+- [x] Verify all 8 backend files pass Node syntax check
+- [x] Verify frontend build passes (1492 modules, 2.81s)
 
-## Phase 2: Git Push ✅
-- [x] Initialize git repo (if not already)
-- [x] Commit all changes
-- [x] Push to `blackboxai/fix-syntax-error` branch → ready for PR or merge to main for Vercel auto-deploy
+## Phase 2: Reorganize frontend with category/subcategory pages & professional functionality
+- [ ] (pending)
 
-## Phase 3: Backend Deploy (Railway)
-- [ ] Deploy `rates-proxy/` Docker container to Railway
-- [ ] Set env vars: `METALS_API_KEY`, `FRONTEND_ORIGIN`, `PORT`
-- [ ] Verify `/api/health` and `/api/rates` endpoints
-
-## Phase 4: Production Config
-- [ ] Update `RATES_BACKEND_URL` to Railway production URL
-- [ ] Remove Vite proxy (dev-only)
-- [ ] Final verification
+## Phase 3: Backend for categories/subcategories
+- [ ] (pending)

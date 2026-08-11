@@ -343,10 +343,11 @@ Respond with ONLY a JSON object in exactly this shape — no markdown fences, no
   ]
 }`;
 
-// Primary source: your own backend proxy for AI design, exposed at the same origin
-// via /api/ai/jewellery-design during deployment. Local dev: Vite proxies /api/* →
-// http://localhost:3000 (vite.config.js). Left blank, this tier is simply skipped.
-const DESIGN_BACKEND_URL = import.meta.env.VITE_DESIGN_BACKEND_URL || '/api/ai/jewellery-design';
+// Primary source: your own backend proxy (see /rates-proxy — the same small Spring
+// Boot service that proxies gold/silver rates also exposes POST /api/design/generate,
+// holding a real Anthropic API key server-side). Local dev: Vite proxies /api/* →
+// http://localhost:8080 (vite.config.js). Left blank, this tier is simply skipped.
+const DESIGN_BACKEND_URL = import.meta.env.VITE_DESIGN_BACKEND_URL || '/api/design/generate';
 
 async function callDesignAI({ promptText, fileBlock }) {
   // Try the backend proxy first — it works on the deployed, standalone site.
@@ -370,10 +371,6 @@ async function callDesignAI({ promptText, fileBlock }) {
         const concept = await res.json();
         return normalizeDesignConcept(concept);
       }
-<<<<<<< Updated upstream
-      const errorBody = await res.text();
-      throw new Error(errorBody || `AI design backend request failed (HTTP ${res.status})`);
-=======
       // Backend reachable but returned an error — most often 503 because
       // ANTHROPIC_API_KEY isn't set on the backend. Remember why, so if the
       // fallback below also fails we can report the real cause instead of a
@@ -381,7 +378,6 @@ async function callDesignAI({ promptText, fileBlock }) {
       backendFailureReason = res.status === 503
         ? 'The design backend is reachable but not configured (missing ANTHROPIC_API_KEY on the server).'
         : `The design backend returned an error (HTTP ${res.status}).`;
->>>>>>> Stashed changes
     } catch (networkErr) {
       // Fetch itself failed — the backend is unreachable, the URL is wrong, or
       // the request was blocked by CORS (the backend's FRONTEND_ORIGIN doesn't
@@ -436,7 +432,7 @@ async function callDesignAI({ promptText, fileBlock }) {
 /* advice — see the disclaimer rendered with every result.              */
 /* ------------------------------------------------------------------ */
 
-const ASTRO_BACKEND_URL = import.meta.env.VITE_ASTRO_BACKEND_URL || '/api/ai/stone-suggestion';
+const ASTRO_BACKEND_URL = import.meta.env.VITE_ASTRO_BACKEND_URL || '/api/astro/suggest-stone';
 
 async function callAstroAI({ dateOfBirth, timeOfBirth, placeOfBirth, concern }) {
   let response;

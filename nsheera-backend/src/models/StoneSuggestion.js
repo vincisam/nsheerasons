@@ -2,7 +2,9 @@ const mongoose = require('mongoose');
 
 const stoneSuggestionSchema = new mongoose.Schema(
   {
-    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    // Optional — the astro endpoints are public, so a request may come in
+    // without a logged-in user (frontend doesn't send a JWT).
+    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: false, default: null },
     input: {
       dob: Date,
       timeOfBirth: String,

@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import * as api from './api';
 import { normalizeDesignConcept } from './designConcept';
 import { normalizeAstroSuggestion } from './astroConcept';
 import headerLogo from './assets/new-header-logo.png';
@@ -40,30 +39,6 @@ const inr = (n) =>
   '₹' + Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 });
 
 const uid = () => Math.random().toString(36).slice(2, 10);
-
-// Adapts a backend User + ClientProfile pair (see src/api.js) into the same
-// flat shape the rest of the UI already expects from the old local-only
-// `clients` array (id/name/phone/email/address/type/businessName/gstNumber/
-// dob/anniversary), so components like ProfileTab, the header, etc. don't
-// need to know whether the signed-in account is backend- or locally-backed.
-function mapUserToClient(user, profile) {
-  if (!user) return null;
-  return {
-    id: user._id,
-    createdAt: user.createdAt,
-    name: user.name || '',
-    phone: user.phone || '',
-    email: user.email || '',
-    address: profile?.address?.line1 || '',
-    type: profile?.type || 'Retail',
-    businessName: profile?.businessName || '',
-    gstNumber: profile?.gstNumber || '',
-    dob: profile?.birthDetails?.dob ? String(profile.birthDetails.dob).slice(0, 10) : '',
-    anniversary: profile?.anniversary ? String(profile.anniversary).slice(0, 10) : '',
-    notes: '',
-    isBackendAccount: true,
-  };
-}
 
 // Fire-and-forget storage write used inside React state updaters, where an uncaught
 // synchronous throw (e.g. window.storage being unavailable) would crash the whole
@@ -343,37 +318,26 @@ Respond with ONLY a JSON object in exactly this shape — no markdown fences, no
   ]
 }`;
 
-// Primary source: your own backend proxy for AI design, exposed at the same origin
-// via /api/ai/jewellery-design during deployment. Local dev: Vite proxies /api/* →
-// http://localhost:3000 (vite.config.js). Left blank, this tier is simply skipped.
-const DESIGN_BACKEND_URL = import.meta.env.VITE_DESIGN_BACKEND_URL || '/api/ai/jewellery-design';
+// Primary source: your own backend proxy (see /rates-proxy — the same small Spring
+// Boot service that proxies gold/silver rates also exposes POST /api/design/generate,
+// holding a real Anthropic API key server-side). Local dev: Vite proxies /api/* →
+// http://localhost:8080 (vite.config.js). Left blank, this tier is simply skipped.
+const DESIGN_BACKEND_URL = import.meta.env.VITE_DESIGN_BACKEND_URL || '/api/design/generate';
 
 async function callDesignAI({ promptText, fileBlock }) {
   // Try the backend proxy first — it works on the deployed, standalone site.
   let backendFailureReason = null;
   if (DESIGN_BACKEND_URL) {
     try {
-      // Attach the signed-in customer's JWT (if any) — the backend's design
-      // route accepts anonymous calls too, but when a token IS present it
-      // ties the generated concept to that account so it shows up in their
-      // dashboard history (see nsheera-backend protectOptional middleware).
-      const authToken = api.getToken();
       const res = await fetch(DESIGN_BACKEND_URL, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ promptText, fileBlock }),
       });
       if (res.ok) {
         const concept = await res.json();
         return normalizeDesignConcept(concept);
       }
-<<<<<<< Updated upstream
-      const errorBody = await res.text();
-      throw new Error(errorBody || `AI design backend request failed (HTTP ${res.status})`);
-=======
       // Backend reachable but returned an error — most often 503 because
       // ANTHROPIC_API_KEY isn't set on the backend. Remember why, so if the
       // fallback below also fails we can report the real cause instead of a
@@ -381,7 +345,6 @@ async function callDesignAI({ promptText, fileBlock }) {
       backendFailureReason = res.status === 503
         ? 'The design backend is reachable but not configured (missing ANTHROPIC_API_KEY on the server).'
         : `The design backend returned an error (HTTP ${res.status}).`;
->>>>>>> Stashed changes
     } catch (networkErr) {
       // Fetch itself failed — the backend is unreachable, the URL is wrong, or
       // the request was blocked by CORS (the backend's FRONTEND_ORIGIN doesn't
@@ -436,18 +399,14 @@ async function callDesignAI({ promptText, fileBlock }) {
 /* advice — see the disclaimer rendered with every result.              */
 /* ------------------------------------------------------------------ */
 
-const ASTRO_BACKEND_URL = import.meta.env.VITE_ASTRO_BACKEND_URL || '/api/ai/stone-suggestion';
+const ASTRO_BACKEND_URL = import.meta.env.VITE_ASTRO_BACKEND_URL || '/api/astro/suggest-stone';
 
 async function callAstroAI({ dateOfBirth, timeOfBirth, placeOfBirth, concern }) {
   let response;
   try {
-    const authToken = api.getToken();
     response = await fetch(ASTRO_BACKEND_URL, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ dateOfBirth, timeOfBirth, placeOfBirth, concern }),
     });
   } catch (networkErr) {
@@ -886,17 +845,9 @@ export default function App() {
   const [orders, setOrders] = useState([]);
   const [inquiries, setInquiries] = useState([]); // Contact Us + Cash for Gold / Loan Settlement submissions
 
-  // Customer accounts: real accounts (sign up / log in with email+password, or
-  // Google) are backed by the nsheera-backend (MongoDB User + ClientProfile via
-  // src/api.js), authenticated with a JWT persisted in localStorage. `currentClientId`
-  // is the backend User's _id once logged in this way. Social demo providers
-  // (Facebook/Apple) that the backend doesn't support fall back to the older
-  // local-only `clients` array below, purely so that part of the UI keeps working —
-  // see socialLogin().
-  const [authToken, setAuthToken] = useState(null);
-  const [authUser, setAuthUser] = useState(null); // backend User (safe object, no password)
-  const [authProfile, setAuthProfile] = useState(null); // backend ClientProfile
-  const [authBusy, setAuthBusy] = useState(false);
+  // Customer accounts reuse the same `clients` array the admin CRM already uses —
+  // registering just adds a `password` (+ dob/anniversary) to a client record, matched
+  // by phone the same way checkout already upserts guest orders into client records.
   const [currentClientId, setCurrentClientId] = useState(null);
   const [shortlists, setShortlists] = useState({}); // { [clientId]: productId[] }
   const [recentlyViewed, setRecentlyViewed] = useState({}); // { [clientId]: productId[] }
@@ -951,34 +902,13 @@ export default function App() {
         if (savedInquiries?.value) setInquiries(JSON.parse(savedInquiries.value));
       } catch (e) { /* none yet */ }
 
-      // Real backend session — restore from the JWT saved in localStorage (see
-      // src/api.js). Takes priority over the local-only demo session below.
-      const savedToken = api.getToken();
-      if (savedToken) {
-        try {
-          const meRes = await api.auth.me(savedToken);
-          setAuthToken(savedToken);
-          setAuthUser(meRes.data.user);
-          setCurrentClientId(meRes.data.user._id);
-          try {
-            const profileRes = await api.client.getProfile();
-            setAuthProfile(profileRes.data.profile);
-          } catch (e) { /* profile not created yet — fine, stays null */ }
-        } catch (e) {
-          // Token expired/invalid — clear it so we don't keep retrying.
-          api.setToken(null);
+      try {
+        const savedSession = await window.storage.get('session', false);
+        if (savedSession?.value) {
+          const parsedSession = JSON.parse(savedSession.value);
+          if (parsedSession?.clientId) setCurrentClientId(parsedSession.clientId);
         }
-      } else {
-        // Fallback: the older local-only demo session (social login accounts
-        // that have no backend counterpart — see socialLogin()).
-        try {
-          const savedSession = await window.storage.get('session', false);
-          if (savedSession?.value) {
-            const parsedSession = JSON.parse(savedSession.value);
-            if (parsedSession?.clientId) setCurrentClientId(parsedSession.clientId);
-          }
-        } catch (e) { /* not signed in */ }
-      }
+      } catch (e) { /* not signed in */ }
 
       try {
         const savedShortlists = await window.storage.get('shortlists', false);
@@ -1185,57 +1115,60 @@ export default function App() {
   }, [cartItemsDetailed, cartTotal, upsertClientFromOrder, currentClientId]);
 
   /* ---------------- customer accounts (register / login / profile) ---------------- */
-  // Real accounts: email+password sign up/sign in goes through the nsheera-backend
-  // (see src/api.js) — the password is hashed server-side (bcrypt) and a JWT is
-  // returned and persisted in localStorage.
-  //
-  // Google/Facebook/Apple demo buttons have no backend counterpart yet (the backend
-  // only supports email+password auth — no OAuth token verification endpoint) and
-  // fall back to the older local-only `clients` array purely so that part of the UI
-  // keeps working — see socialLogin() below. Wiring real Google sign-in server-side
-  // (verifying the ID token and issuing a real JWT) is a natural next step.
+  // NOTE ON SECURITY: this is a client-side demo. Passwords are matched in the
+  // browser against data held in the artifact's storage — there is no real backend,
+  // hashing, or session security here, the same as the admin panel's demo password.
+  // A production deployment needs a real backend to handle authentication safely.
 
   const findClientByIdentifier = useCallback((identifier) => {
     const norm = identifier.trim().toLowerCase();
     return clients.find((c) => c.phone === identifier.trim() || (c.email || '').toLowerCase() === norm);
   }, [clients]);
 
-  const applyAuthSession = useCallback(async (token, user) => {
-    api.setToken(token);
-    setAuthToken(token);
-    setAuthUser(user);
-    setCurrentClientId(user._id);
-    try {
-      const profileRes = await api.client.getProfile();
-      setAuthProfile(profileRes.data.profile);
-    } catch (e) { setAuthProfile(null); }
-  }, []);
-
-  const registerClient = useCallback(async (fields) => {
-    setAuthBusy(true);
-    try {
-      const res = await api.auth.signup({ name: fields.name.trim(), email: fields.email.trim(), password: fields.password });
-      await applyAuthSession(res.data.token, res.data.user);
-      return { ok: true, client: mapUserToClient(res.data.user, null) };
-    } catch (e) {
-      return { ok: false, error: e.message || 'Could not create account.' };
-    } finally {
-      setAuthBusy(false);
+  // Signup only collects name/email/password now — everything else (phone, address,
+  // account type, GST, DOB, anniversary) defaults empty/Retail and is filled in later
+  // via Profile. Matches by email rather than phone, since phone is no longer
+  // collected at signup; preserves any existing record's data under that email (e.g.
+  // one already created via social login, or by staff in the CRM).
+  const registerClient = useCallback((fields) => {
+    const norm = fields.email.trim().toLowerCase();
+    const existing = clients.find((c) => (c.email || '').toLowerCase() === norm);
+    if (existing?.password) {
+      return { ok: false, error: 'An account with this email already exists. Try signing in instead.' };
     }
-  }, [applyAuthSession]);
+    const record = {
+      id: existing?.id || uid(),
+      createdAt: existing?.createdAt || new Date().toISOString(),
+      name: fields.name.trim(),
+      phone: existing?.phone || '',
+      email: fields.email.trim(),
+      address: existing?.address || '',
+      type: existing?.type || 'Retail',
+      businessName: existing?.businessName || '',
+      gstNumber: existing?.gstNumber || '',
+      dob: existing?.dob || '',
+      anniversary: existing?.anniversary || '',
+      password: fields.password,
+      notes: existing?.notes || 'Self-registered customer account',
+    };
+    setClients((prev) => {
+      const next = existing ? prev.map((c) => (c.id === existing.id ? record : c)) : [...prev, record];
+      safeStorageSet('clients', JSON.stringify(next), false);
+      return next;
+    });
+    setCurrentClientId(record.id);
+    safeStorageSet('session', JSON.stringify({ clientId: record.id }), false);
+    return { ok: true, client: record };
+  }, [clients]);
 
-  const loginClient = useCallback(async (identifier, password) => {
-    setAuthBusy(true);
-    try {
-      const res = await api.auth.login({ email: identifier.trim(), password });
-      await applyAuthSession(res.data.token, res.data.user);
-      return { ok: true, client: mapUserToClient(res.data.user, null) };
-    } catch (e) {
-      return { ok: false, error: e.message || 'Could not sign in.' };
-    } finally {
-      setAuthBusy(false);
-    }
-  }, [applyAuthSession]);
+  const loginClient = useCallback((identifier, password) => {
+    const match = findClientByIdentifier(identifier);
+    if (!match || !match.password) return { ok: false, error: 'No account found with that phone or email.' };
+    if (match.password !== password) return { ok: false, error: 'Incorrect password.' };
+    setCurrentClientId(match.id);
+    safeStorageSet('session', JSON.stringify({ clientId: match.id }), false);
+    return { ok: true, client: match };
+  }, [findClientByIdentifier]);
 
   // Social sign-in matches/creates by email (no password) — the same "frictionless
   // return visit" behaviour a real Google/Facebook/Apple login gives you. See the
@@ -1286,60 +1219,25 @@ export default function App() {
   }, [socialLogin]);
 
   const logoutClient = useCallback(() => {
-    api.setToken(null);
-    setAuthToken(null);
-    setAuthUser(null);
-    setAuthProfile(null);
     setCurrentClientId(null);
     safeStorageSet('session', JSON.stringify({ clientId: null }), false);
   }, []);
 
-  // Dual-path: real accounts save via the backend (PUT /api/client/profile,
-  // which also updates name/phone on the User record); the local-only demo
-  // (social-login) accounts still just patch the `clients` array in place.
-  const updateClientProfile = useCallback(async (clientId, patch) => {
-    if (authUser && clientId === authUser._id) {
-      try {
-        const res = await api.client.updateProfile({
-          name: patch.name,
-          phone: patch.phone,
-          address: { line1: patch.address },
-          type: patch.type,
-          businessName: patch.businessName,
-          gstNumber: patch.gstNumber,
-          birthDetails: patch.dob ? { dob: patch.dob } : undefined,
-          anniversary: patch.anniversary || undefined,
-        });
-        setAuthUser(res.data.user);
-        setAuthProfile(res.data.profile);
-        return { ok: true };
-      } catch (e) {
-        return { ok: false, error: e.message || 'Could not save profile.' };
-      }
-    }
+  const updateClientProfile = useCallback((clientId, patch) => {
     setClients((prev) => {
       const next = prev.map((c) => (c.id === clientId ? { ...c, ...patch } : c));
       safeStorageSet('clients', JSON.stringify(next), false);
       return next;
     });
-    return { ok: true };
-  }, [authUser]);
+  }, []);
 
-  const changeClientPassword = useCallback(async (clientId, currentPassword, newPassword) => {
-    if (authUser && clientId === authUser._id) {
-      try {
-        await api.auth.changePassword({ currentPassword, newPassword });
-        return { ok: true };
-      } catch (e) {
-        return { ok: false, error: e.message || 'Could not update password.' };
-      }
-    }
+  const changeClientPassword = useCallback((clientId, currentPassword, newPassword) => {
     const client = clients.find((c) => c.id === clientId);
     if (!client) return { ok: false, error: 'Account not found.' };
     if (client.password !== currentPassword) return { ok: false, error: 'Current password is incorrect.' };
     updateClientProfile(clientId, { password: newPassword });
     return { ok: true };
-  }, [clients, authUser, updateClientProfile]);
+  }, [clients, updateClientProfile]);
 
   // Password reset tokens (stored in memory — survives navigation but not a full page reload;
   // a real backend would persist the token server-side with an expiry)
@@ -1400,10 +1298,7 @@ export default function App() {
     });
   }, []);
 
-  const currentClient = useMemo(
-    () => (authUser ? mapUserToClient(authUser, authProfile) : clients.find((c) => c.id === currentClientId) || null),
-    [authUser, authProfile, clients, currentClientId]
-  );
+  const currentClient = useMemo(() => clients.find((c) => c.id === currentClientId) || null, [clients, currentClientId]);
   const myShortlistIds = shortlists[currentClientId] || [];
   const myRecentlyViewedIds = recentlyViewed[currentClientId] || [];
 
@@ -2949,25 +2844,19 @@ function AccountAuth({ onRegister, onLogin, onSocialLogin, onSendResetToken, onR
   const [resetStep, setResetStep] = useState('request'); // 'request' | 'token' | 'done'
   const [resetSentMsg, setResetSentMsg] = useState('');
 
-  const [submitting, setSubmitting] = useState(false);
-
-  const submitLogin = async (e) => {
+  const submitLogin = (e) => {
     e.preventDefault();
     if (!loginId.trim() || !loginPw) { setErr('Enter your email and password.'); return; }
-    setSubmitting(true);
-    const res = await onLogin(loginId, loginPw);
-    setSubmitting(false);
+    const res = onLogin(loginId, loginPw);
     if (!res.ok) setErr(res.error); else setErr('');
   };
 
-  const submitRegister = async (e) => {
+  const submitRegister = (e) => {
     e.preventDefault();
     if (!reg.name.trim() || !reg.email.trim() || !reg.password) { setErr('Name, email and password are required.'); return; }
-    if (reg.password.length < 6) { setErr('Password should be at least 6 characters.'); return; }
+    if (reg.password.length < 4) { setErr('Password should be at least 4 characters.'); return; }
     if (reg.password !== reg.confirmPassword) { setErr('Passwords do not match.'); return; }
-    setSubmitting(true);
-    const res = await onRegister(reg);
-    setSubmitting(false);
+    const res = onRegister(reg);
     if (!res.ok) setErr(res.error); else setErr('');
   };
 
@@ -3078,7 +2967,7 @@ function AccountAuth({ onRegister, onLogin, onSocialLogin, onSendResetToken, onR
               Forgot Password?
             </button>
             {err && <div style={{ color: '#B3261E', fontSize: 12.5, marginBottom: 12 }}>{err}</div>}
-            <button className="btn" type="submit" disabled={submitting} style={{ width: '100%', justifyContent: 'center' }}>{submitting ? 'Signing In…' : 'Sign In'}</button>
+            <button className="btn" type="submit" style={{ width: '100%', justifyContent: 'center' }}>Sign In</button>
           </form>
         ) : mode === 'register' ? (
           <form onSubmit={submitRegister}>
@@ -3087,7 +2976,7 @@ function AccountAuth({ onRegister, onLogin, onSocialLogin, onSendResetToken, onR
             <div className="field" style={{ marginBottom: 12 }}><label>Password</label><input type="password" value={reg.password} onChange={(e) => setReg({ ...reg, password: e.target.value })} /></div>
             <div className="field" style={{ marginBottom: 14 }}><label>Confirm Password</label><input type="password" value={reg.confirmPassword} onChange={(e) => setReg({ ...reg, confirmPassword: e.target.value })} /></div>
             {err && <div style={{ color: '#B3261E', fontSize: 12.5, marginBottom: 12 }}>{err}</div>}
-            <button className="btn" type="submit" disabled={submitting} style={{ width: '100%', justifyContent: 'center' }}>{submitting ? 'Creating Account…' : 'Create Account'}</button>
+            <button className="btn" type="submit" style={{ width: '100%', justifyContent: 'center' }}>Create Account</button>
           </form>
         ) : (
           /* Forgot Password flow */
@@ -3760,22 +3649,21 @@ function ProfileTab({ client, onUpdateProfile, onChangePassword }) {
   const [pwForm, setPwForm] = useState({ current: '', next: '', confirm: '' });
   const [pwMsg, setPwMsg] = useState({ text: '', ok: false });
 
-  const save = async (e) => {
+  const save = (e) => {
     e.preventDefault();
     if (!form.name.trim() || !form.phone.trim()) { setErr('Name and phone are required.'); return; }
     if (form.type === 'Shopkeeper' && !form.gstNumber.trim()) { setErr('GST number is required for Shopkeeper / business accounts.'); return; }
     setErr('');
-    const res = await onUpdateProfile(client.id, form);
-    if (res && res.ok === false) { setErr(res.error); return; }
+    onUpdateProfile(client.id, form);
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   };
 
-  const savePassword = async (e) => {
+  const savePassword = (e) => {
     e.preventDefault();
-    if (!pwForm.next || pwForm.next.length < 6) { setPwMsg({ text: 'New password should be at least 6 characters.', ok: false }); return; }
+    if (!pwForm.next || pwForm.next.length < 4) { setPwMsg({ text: 'New password should be at least 4 characters.', ok: false }); return; }
     if (pwForm.next !== pwForm.confirm) { setPwMsg({ text: 'New passwords do not match.', ok: false }); return; }
-    const res = await onChangePassword(client.id, pwForm.current, pwForm.next);
+    const res = onChangePassword(client.id, pwForm.current, pwForm.next);
     if (!res.ok) { setPwMsg({ text: res.error, ok: false }); return; }
     setPwMsg({ text: 'Password updated.', ok: true });
     setPwForm({ current: '', next: '', confirm: '' });
